@@ -31,7 +31,7 @@ namespace SNIFF
 {
 	static class Globals
 	{
-		public const int VersionNumber = 7;
+		public const int VersionNumber = 1;
 		public const int NoteSize = 24;
 		public static ushort ppqn = 96;
 		public static string name = "";
@@ -44,21 +44,31 @@ namespace SNIFF
 
 	public enum MIDINotes
 	{
-		BF_L = 48,
-		BF_D = 49,
-		BF_U = 50,
-		BF_R = 51,
+        BF_L = 43,
+        BF_D = 44,
+        BF_U = 45,
+        BF_R = 46,
+        BF_M = 47,
+        BF_L2 = 48,
+		BF_D2 = 49,
+		BF_U2 = 50,
+		BF_R2 = 51,
 		
 		BF_CAM = 53,
 		EN_CAM = 54,
 		
 		BPM_CH = 56,
 		ALT_AN = 57,
-		
-		EN_L = 60,
-		EN_D = 61,
-		EN_U = 62,
-		EN_R = 63
+
+        EN_L = 67,
+        EN_D = 68,
+        EN_U = 69,
+        EN_R = 70,
+        EN_M = 71,
+        EN_L2 = 72,
+		EN_D2 = 73,
+		EN_U2 = 74,
+		EN_R2 = 75
 	}
 
 	public enum FNFNotes : int
@@ -67,16 +77,26 @@ namespace SNIFF
 		F_D = 1,
 		F_U = 2,
 		F_R = 3,
+        F_M = 4,
+        F_L2 = 5,
+        F_D2 = 6,
+        F_U2 = 7,
+        F_R2 = 8,
 
-		O_L = 4,
-		O_D = 5,
-		O_U = 6,
-		O_R = 7,
+        O_L = 12,
+		O_D = 13,
+		O_U = 14,
+		O_R = 15,
+        O_M = 16,
+        O_L2 = 17,
+        O_D2 = 18,
+        O_U2 = 19,
+        O_R2 = 20,
 
-		BF_CAM = 8,
-		EN_CAM = 9,
-		ALT_AN = 10,
-		BPM_CH = 11
+        BF_CAM = 22,
+		EN_CAM = 21,
+		ALT_AN = 23,
+		BPM_CH = 25,
 	}
 	
 
@@ -114,15 +134,28 @@ namespace SNIFF
 				case (int)FNFNotes.F_D:
 				case (int)FNFNotes.F_U:
 				case (int)FNFNotes.F_R:
-					midiPitch = (uint)(MIDINotes.BF_L + noteData + (mustHitSection ? 0 : 12));
-					break;
-				case (int)FNFNotes.O_L:
+                case (int)FNFNotes.F_M:
+                case (int)FNFNotes.F_L2:
+                case (int)FNFNotes.F_D2:
+                case (int)FNFNotes.F_U2:
+                case (int)FNFNotes.F_R2:
+                    midiPitch = (uint)(MIDINotes.BF_L + noteData + (mustHitSection ? 0 : 12));
+                    break;
+
+
+                case (int)FNFNotes.O_L:
 				case (int)FNFNotes.O_D:
 				case (int)FNFNotes.O_U:
 				case (int)FNFNotes.O_R:
-					midiPitch = (uint)(MIDINotes.BF_L + noteData - 4 + (mustHitSection ? 12 : 0));
-					break;
-				case (int)FNFNotes.BF_CAM:
+                case (int)FNFNotes.O_M:
+                case (int)FNFNotes.O_L2:
+                case (int)FNFNotes.O_D2:
+                case (int)FNFNotes.O_U2:
+                case (int)FNFNotes.O_R2:
+                    midiPitch = (uint)(MIDINotes.BF_L + noteData - 4 + (mustHitSection ? 12 : 0));
+                    break;
+
+                case (int)FNFNotes.BF_CAM:
 					midiPitch = (uint)MIDINotes.BF_CAM;
 					break;
 				case (int)FNFNotes.EN_CAM:
@@ -343,7 +376,7 @@ namespace SNIFF
 			// let us start assembling the funk
 			//Console.WriteLine("\nFirst, we gotta set up some data...");
 			if (Globals.name == "") {
-				Console.Write("Song name: ");
+				Console.Write("Song Name: ");
 				Globals.name = Console.ReadLine();
 			}
 			JObject song = new JObject {
@@ -357,21 +390,21 @@ namespace SNIFF
 				Globals.bpm = Globals.bpmList[0];
 			song.Add("bpm", Globals.bpm);
 			if (Globals.needsVoices == 0) {
-				Console.Write("Use separate voices file? (y/N, default y) ");
+				Console.Write("Use separate Voices file? (y/N, default y) ");
 				Globals.needsVoices = Console.ReadLine().ToLower().Trim() == "n" ? -1 : 1;
 			}
 			song.Add("needsVoices", Globals.needsVoices > 0);
 			if (Globals.player1 == "") {
-				Console.Write("player1 (see assets\\data\\characterList.txt): ");
+				Console.Write("Player 1 (Check your characterList): ");
 				Globals.player1 = Console.ReadLine();
 			}
 			song.Add("player1", Globals.player1);
 			if (Globals.player2 == "") {
-				Console.Write("player2 (see assets\\data\\characterList.txt): ");
+				Console.Write("Player2 (Check your characterList): ");
 				Globals.player2 = Console.ReadLine();
 			}
 			song.Add("player2", Globals.player2);
-			Console.Write("speed: ");
+			Console.Write("Chart Speed: ");
 			song.Add("speed", float.Parse(Console.ReadLine()));
 			int enableChangeBPM = 0; // 0 = no, 1 = yes, 2 = yes and use bpmList.txt
 			for (int i = 0; i < notes.Count; i++)
@@ -507,45 +540,101 @@ namespace SNIFF
 						break;
 					case (uint)MIDINotes.BF_L:
 						n = new List<object>(){ time,
-							mustHitSection ? 0 : 4,
+							mustHitSection ? 0 : 9,
 							sus};
 						break;
 					case (uint)MIDINotes.BF_D:
 						n = new List<object>(){ time,
-							mustHitSection ? 1 : 5,
+							mustHitSection ? 1 : 10,
 							sus};
 						break;
 					case (uint)MIDINotes.BF_U:
 						n = new List<object>(){ time,
-							mustHitSection ? 2 : 6,
+							mustHitSection ? 2 : 11,
 							sus};
 						break;
 					case (uint)MIDINotes.BF_R:
 						n = new List<object>(){ time,
-							mustHitSection ? 3 : 7,
+							mustHitSection ? 3 : 12,
 							sus};
-						break;
-					case (uint)MIDINotes.EN_L:
+                        break;
+                    case (uint)MIDINotes.BF_M:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 4 : 13,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.BF_L2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 5 : 14,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.BF_D2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 6 : 15,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.BF_U2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 7 : 16,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.BF_R2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 8 : 17,
+                            sus};
+                        break;
+
+
+
+
+
+
+                    case (uint)MIDINotes.EN_L:
 						n = new List<object>(){ time,
-							mustHitSection ? 4 : 0,
+							mustHitSection ? 9 : 0,
 							sus};
 						break;
 					case (uint)MIDINotes.EN_D:
 						n = new List<object>(){ time,
-							mustHitSection ? 5 : 1,
+							mustHitSection ? 10 : 1,
 							sus};
 						break;
 					case (uint)MIDINotes.EN_U:
 						n = new List<object>(){ time,
-							mustHitSection ? 6 : 2,
+							mustHitSection ? 11 : 2,
 							sus};
 						break;
 					case (uint)MIDINotes.EN_R:
 						n = new List<object>(){ time,
-							mustHitSection ? 7 : 3,
+							mustHitSection ? 12 : 3,
 							sus};
-						break;
-					default:
+                        break;
+                    case (uint)MIDINotes.EN_M:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 13 : 4,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.EN_L2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 14 : 5,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.EN_D2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 15 : 6,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.EN_U2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 16 : 7,
+                            sus};
+                        break;
+                    case (uint)MIDINotes.EN_R2:
+                        n = new List<object>(){ time,
+                            mustHitSection ? 17 : 8,
+                            sus};
+                        break;
+                    default:
 						break;
 				}
 				if (n != null)
@@ -563,7 +652,7 @@ namespace SNIFF
 			song.Add("notes", JArray.FromObject(sections));
 			JObject file = new JObject {
 					{ "song", song },
-					{ "generatedBy", "SNIFF ver." + Globals.VersionNumber }
+					{ "generatedBy", "Sniff9K Ver." + Globals.VersionNumber }
 				};
 			return file;
 		}
@@ -653,7 +742,7 @@ namespace SNIFF
 		[STAThread]
 		static void Main(string[] args)
 		{
-			Console.WriteLine("SiIva Note Importer For FNF (SNIFF)\nquite pungent my dear... version  "+ Globals.VersionNumber +"\n");
+			Console.WriteLine("Sniff9K - Version:" + Globals.VersionNumber + "\nCredit to MtH \n");
 			OpenFileDialog fileBrowser = new OpenFileDialog {
 				InitialDirectory = Directory.GetCurrentDirectory(),
 				Filter = "FL Studio file (*.fsc, *.flp)|*.fsc;*.flp|JSON file (*.json)|*.json|All files (*.*)|*.*",
